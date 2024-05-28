@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Inter } from "next/font/google";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import UserCard from "../../components/UserCard";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -18,25 +18,41 @@ export default function Home() {
     start: 1,
     end: pageButtonsToShow,
   });
-  console.log(userData);
-  useEffect(() => {
-    const fetchUsers = async () => {
+  const [currentItems, setCurrentItems] = useState<{ [key: string]: any }[]>(
+    []
+  );
+  // console.log(userData);
+
+  const fetchUsers = useCallback(
+    async (
+      currentPage: number,
+      setUserData: React.Dispatch<
+        React.SetStateAction<{ [key: string]: any }[]>
+      >
+    ) => {
       try {
         const response = await fetch(
           `https://give-me-users-forever.vercel.app/api/users/${currentPage}/next`
         );
+
         if (!response.ok) {
-          throw new Error("Network response was not ok");
+          throw new Error("Bad Network response");
         }
+
         const data = await response.json();
-        console.log(data);
+        // console.log(data);
+
         setUserData((prevData) => [...prevData, ...data.users]);
       } catch (error) {
         console.error("Failed to fetch users:", error);
       }
-    };
-    currentPage >= numberOfPages && fetchUsers();
-  }, [currentPage, numberOfPages]);
+    },
+    []
+  );
+
+  useEffect(() => {
+    currentPage >= numberOfPages && fetchUsers(currentPage, setUserData);
+  }, [currentPage, fetchUsers, numberOfPages]);
 
   useEffect(() => {
     if (numberOfPages <= pageButtonsToShow) {
@@ -74,18 +90,22 @@ export default function Home() {
     setCurrentPage((prevPage) => prevPage - 1);
   };
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = userData?.slice(indexOfFirstItem, indexOfLastItem);
+  useEffect(() => {
+    let indexOfLastItem = currentPage * itemsPerPage;
+    let indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    console.log(indexOfFirstItem, indexOfLastItem);
+    setCurrentItems(userData?.slice(indexOfFirstItem, indexOfLastItem));
+    console.log(userData?.slice(indexOfFirstItem, indexOfLastItem));
+  }, [currentPage, userData]);
 
   return (
     <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
+      className={`flex min-h-screen flex-col items-center justify-start p-12 ${inter.className}`}
     >
-      <div className="flex flex-col justify-start items-center">
+      <div className="flex flex-col justify-between items-center">
         {" "}
         <h2 className="text-4xl text-bold">User Details</h2>
-        <div className="flex flex-wrap">
+        <div className="flex flex-wrap justify-around w-full mt-6 mb-6">
           {currentItems.map((userDetails, index) => {
             return <UserCard data={userDetails} key={index} />;
           })}
@@ -97,8 +117,8 @@ export default function Home() {
           onClick={handlePreviousPage}
           className={`px-4 py-2 rounded ${
             currentPage === 1
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-700 text-white"
+              ? "bg-gray-300 cursor-not-allowed text-black"
+              : "bg-blue-500 hover:bg-blue-700 text-black"
           }`}
         >
           Previous
@@ -112,8 +132,8 @@ export default function Home() {
                 onClick={() => setCurrentPage(i + pageButtonsRange.start)}
                 className={`px-4 py-2 rounded ${
                   currentPage === i + pageButtonsRange.start
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-300 hover:bg-gray-400"
+                    ? "bg-blue-500 text-black"
+                    : "bg-blue-300 hover:bg-blue-400 text-black"
                 }`}
               >
                 {i + pageButtonsRange.start}
@@ -126,8 +146,8 @@ export default function Home() {
           onClick={handleNextPage}
           className={`px-4 py-2 rounded ${
             currentPage === numberOfPages
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-700 text-white"
+              ? "bg-gray-300 cursor-not-allowed text-black"
+              : "bg-blue-500 hover:bg-blue-700 text-black"
           }`}
         >
           Next
